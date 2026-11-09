@@ -1,0 +1,98 @@
+# EmailJS šablona – ZEMTAR poptávka
+# Zkopíruj do dashboardu: Email Templates → Contact Us (nebo nová šablona).
+# Po uložení zkopíruj Template ID do EMAILJS_TEMPLATE_ID.
+
+────────────────────────────────────────
+Název šablony
+────────────────────────────────────────
+ZEMTAR poptávka
+
+────────────────────────────────────────
+Subject
+────────────────────────────────────────
+ZEMTAR: {{title}}
+
+────────────────────────────────────────
+To Email
+────────────────────────────────────────
+zemtarcz@gmail.com
+
+────────────────────────────────────────
+From Name
+────────────────────────────────────────
+{{name}}
+
+────────────────────────────────────────
+From Email
+────────────────────────────────────────
+☑ Use Default Email Address
+
+────────────────────────────────────────
+Reply To
+────────────────────────────────────────
+{{email}}
+
+────────────────────────────────────────
+Content (tělo e-mailu) – vlož do editoru
+────────────────────────────────────────
+
+Nová poptávka z webu zemtar.cz
+
+{{name}} · {{time}}
+E-mail: {{email}}
+Telefon: {{phone}}
+
+Místo: {{place}}
+Termín: {{term}}
+Služby: {{services}}
+
+Poznámka:
+{{message}}
+
+{{context}}
+
+Fotky: {{photos}}
+
+────────────────────────────────────────
+Proměnné (posílá server action)
+────────────────────────────────────────
+{{title}}     předmět / místo (např. „Poptávka – Domažlice“)
+{{name}}      jméno
+{{email}}     e-mail (Reply-To)
+{{phone}}     telefon
+{{place}}     místo zakázky
+{{term}}      termín (nebo —)
+{{services}}  zvolené služby
+{{message}}   poznámka (nebo —)
+{{context}}   ceník / technika (může být prázdné)
+{{photos}}    názvy fotek (nebo —)
+{{time}}      čas odeslání (cs-CZ)
+
+────────────────────────────────────────
+HTML varianta (volitelně – Code / HTML mód)
+────────────────────────────────────────
+
+<div style="font-family: system-ui, sans-serif; font-size: 15px; line-height: 1.5; color: #1D1B18;">
+  <p style="margin: 0 0 16px;">Nová poptávka z webu <strong>zemtar.cz</strong></p>
+  <p style="margin: 0 0 4px;"><strong>{{name}}</strong> · <span style="color: #666;">{{time}}</span></p>
+  <p style="margin: 0 0 4px;">E-mail: <a href="mailto:{{email}}">{{email}}</a></p>
+  <p style="margin: 0 0 16px;">Telefon: <a href="tel:{{phone}}">{{phone}}</a></p>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+    <tr>
+      <td style="padding: 6px 0; color: #666; width: 88px;">Místo</td>
+      <td style="padding: 6px 0;">{{place}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #666;">Termín</td>
+      <td style="padding: 6px 0;">{{term}}</td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; color: #666;">Služby</td>
+      <td style="padding: 6px 0;">{{services}}</td>
+    </tr>
+  </table>
+  <p style="margin: 0 0 4px; color: #666;">Poznámka</p>
+  <p style="margin: 0 0 16px; white-space: pre-wrap;">{{message}}</p>
+  <pre style="margin: 0 0 16px; white-space: pre-wrap; font-family: inherit;">{{context}}</pre>
+  <p style="margin: 0; color: #666;">Fotky: {{photos}}</p>
+</div>

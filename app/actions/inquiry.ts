@@ -212,6 +212,128 @@ function buildPlainBody(
   return sections.join("\n");
 }
 
+function emailJsConfigured(): boolean {
+  return Boolean(
+    process.env.EMAILJS_SERVICE_ID &&
+      process.env.EMAILJS_TEMPLATE_ID &&
+      process.env.EMAILJS_PUBLIC_KEY,
+  );
+}
+
+function formatInquiryTime(date = new Date()): string {
+  return new Intl.DateTimeFormat("cs-CZ", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "Europe/Prague",
+  }).format(date);
+}
+
+type EmailJsTemplateParams = {
+  /** Předmět: „Poptávka – {místo}“. */
+  title: string;
+  name: string;
+  email: string;
+  phone: string;
+  place: string;
+  term: string;
+  services: string;
+  /** Poznámka z formuláře. */
+  message: string;
+  /** Bloky ceník / technika (nebo prázdné). */
+  context: string;
+  photos: string;
+  time: string;
+};
+
+function buildEmailJsParams(
+  data: z.infer<typeof inquirySchema>,
+  photoNames: string[],
+): EmailJsTemplateParams {
+  const services = data.services
+    .map((s) => serviceLabelByValue[s] ?? s)
+    .join(", ");
+
+  const contextParts: string[] = [];
+  if (data.contextCenik?.trim()) {
+    contextParts.push(
+      `— CENÍK (orientační odhad) —\n${data.contextCenik.trim()}`,
+    );
+  }
+  if (data.contextTechnika?.trim()) {
+    contextParts.push(
+      `— TECHNIKA (konfigurátor) —\n${data.contextTechnika.trim()}`,
+    );
+  }
+
+  return {
+    title: `Poptávka – ${data.place}`,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    place: data.place,
+    term: data.term?.trim() || "—",
+    services,
+    message: data.note?.trim() || "—",
+    context: contextParts.join("\n\n"),
+    photos: photoNames.length
+      ? `${photoNames.join(", ")} (soubory EmailJS nepřikládá)`
+      : "—",
+    time: formatInquiryTime(),
+  };
+}
+
+/** Šablona ZEMTAR poptávka – viz `content/emailjs-template.txt`. */
+async function sendViaEmailJs(
+  params: EmailJsTemplateParams,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const serviceId = process.env.EMAILJS_SERVICE_ID;
+  const templateId = process.env.EMAILJS_TEMPLATE_ID;
+  const publicKey = process.env.EMAILJS_PUBLIC_KEY;
+  const accessToken =
+    process.env.EMAILJS_PRIVATE_KEY || process.env.EMAILJS_ACCESS_TOKEN;
+
+  if (!serviceId || !templateId || !publicKey) {
+    return { ok: false, message: "Chybí konfigurace odesílání e-mailu." };
+  }
+
+  const payload: Record<string, unknown> = {
+    service_id: serviceId,
+    template_id: templateId,
+    user_id: publicKey,
+    template_params: params,
+  };
+
+  if (accessToken) {
+    payload.accessToken = accessToken;
+  }
+
+  try {
+    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("[inquiry emailjs]", res.status, detail);
+      return {
+        ok: false,
+        message:
+          "Odeslání e-mailu se nepodařilo. Zkuste to znovu nebo nám zavolejte.",
+      };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error("[inquiry emailjs]", err);
+    return {
+      ok: false,
+      message:
+        "Odeslání e-mailu se nepodařilo. Zkuste to znovu nebo nám zavolejte.",
+    };
+  }
+}
+
 async function sendViaResend(opts: {
   to: string;
   subject: string;
@@ -337,34 +459,43 @@ export async function submitInquiry(
   const data = parsed.data;
   const photos = photoResult.photos;
   const photoNames = photos.map((p) => p.filename);
+  const title = `Poptávka – ${data.place}`;
   const plainBody = buildPlainBody(data, photoNames);
 
-  // TODO: napojit Resend/SMTP (env RESEND_API_KEY, INQUIRY_TO) – přílohy = fotky
-  console.log("[inquiry stub]", {
-    services: data.services,
-    place: data.place,
-    term: data.term,
-    name: data.name,
-    phone: data.phone,
-    email: data.email,
-    note: data.note,
-    contextCenik: data.contextCenik,
-    contextTechnika: data.contextTechnika,
-    photos: photos.map((p) => ({
-      filename: p.filename,
-      contentType: p.contentType,
-      size: p.size,
-    })),
-  });
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[inquiry]", {
+      services: data.services,
+      place: data.place,
+      name: data.name,
+      email: data.email,
+      photos: photoNames,
+      via: emailJsConfigured()
+        ? "emailjs"
+        : process.env.RESEND_API_KEY && process.env.INQUIRY_TO
+          ? "resend"
+          : "mailto",
+    });
+  }
 
-  const hasMailBackend = Boolean(
+  if (emailJsConfigured()) {
+    const sent = await sendViaEmailJs(buildEmailJsParams(data, photoNames));
+    if (!sent.ok) {
+      return { ok: false, message: sent.message, values };
+    }
+    return {
+      ok: true,
+      message: `Děkujeme, ozveme se nejpozději do ${unwrap(site.responseSla)}.`,
+    };
+  }
+
+  const hasResend = Boolean(
     process.env.RESEND_API_KEY && process.env.INQUIRY_TO,
   );
 
-  if (hasMailBackend) {
+  if (hasResend) {
     const sent = await sendViaResend({
       to: process.env.INQUIRY_TO as string,
-      subject: `Poptávka – ${data.place}`,
+      subject: title,
       text: plainBody,
       photos,
     });
@@ -378,13 +509,13 @@ export async function submitInquiry(
   }
 
   const to = process.env.INQUIRY_TO || siteConfig.email;
-  const subject = encodeURIComponent(`Poptávka – ${data.place}`);
+  const subject = encodeURIComponent(title);
   const body = encodeURIComponent(
     [
       plainBody,
       "",
       photos.length
-        ? `(Fotky nelze poslat přes mailto – po napojení Resend půjdou jako přílohy: ${photoNames.join(", ")})`
+        ? `(Fotky nelze poslat přes mailto: ${photoNames.join(", ")})`
         : "",
     ]
       .filter(Boolean)

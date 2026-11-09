@@ -111,7 +111,7 @@ async function safeSubmitInquiry(
     return {
       ok: false,
       message:
-        "Odeslání se nepodařilo. Zkuste to znovu, použijte mailto níže nebo nám zavolejte.",
+        "Odeslání se nepodařilo. Zkuste to znovu nebo nám zavolejte.",
       values: {
         services: formData
           .getAll("services")
