@@ -168,6 +168,30 @@ async function parsePhotos(
   return { photos };
 }
 
+/** ISO `yyyy-mm-dd` → český zápis `d. m. yyyy` (např. 11. 11. 2026). */
+function formatTermCs(term: string | undefined): string {
+  const raw = term?.trim();
+  if (!raw) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!m) return raw;
+  const y = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const date = new Date(y, month - 1, day);
+  if (
+    date.getFullYear() !== y ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return raw;
+  }
+  return new Intl.DateTimeFormat("cs-CZ", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
 function buildPlainBody(
   data: z.infer<typeof inquirySchema>,
   photoNames: string[],
@@ -181,7 +205,7 @@ function buildPlainBody(
     "— POPTÁVKA —",
     `Služby: ${serviceLabels}`,
     `Místo: ${data.place}`,
-    `Termín: ${data.term || "—"}`,
+    `Termín: ${formatTermCs(data.term)}`,
     `Jméno: ${data.name}`,
     `Telefon: ${data.phone}`,
     `E-mail: ${data.email}`,
