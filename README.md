@@ -49,7 +49,7 @@ Checklist před spuštěním: **BRIEF kap. 9**.
 - Nákladák: mezi FAQ a kontaktem.
 - Hero kompozice: dle `assets-start/mockup-hero-stred.png` + `object-position: 40% 100%` na videu.
 - Preview/non-production: `robots` noindex (`VERCEL_ENV !== production`).
-- Odesílání poptávek: EmailJS (`EMAILJS_SERVICE_ID` / `TEMPLATE_ID` / `PUBLIC_KEY` / `PRIVATE_KEY`), jinak Resend, jinak `mailto:` fallback.
+- Odesílání poptávek: Resend (`RESEND_API_KEY`, `INQUIRY_TO=info@zemtar.cz`, `INQUIRY_FROM`) včetně příloh fotek; bez klíče `mailto:` fallback.
 - Deploy na Vercel: ručně (projekt připraven).
 - Lighthouse: v tomto prostředí nebyl dostupný Chrome/Chromium (ani Playwright download). Spusťte lokálně: `npx lighthouse http://localhost:3000 --form-factor=mobile --view`.
 

@@ -35,7 +35,7 @@ export const siteConfig: SiteConfig = {
   name: "ZEMTAR",
   domain,
   url: `https://${domain}`,
-  email: "svec@gts-pce.cz",
+  email: "info@zemtar.cz",
   phone,
   phoneTel: `tel:${phone.replace(/[^\d+]/g, "")}`,
   tagline: "Zemní práce od A do Z",
