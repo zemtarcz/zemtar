@@ -16,9 +16,7 @@ const HERO_HOLD = 0.02;
 const IDLE_LOOP_FRAMES = 15;
 /** Dig frames advanced per second while idle (ping-pong). */
 const IDLE_FPS = 14;
-/** Keep decoded frames within ±N of scrub/idle head; evict the rest. */
-const FRAME_WINDOW = 28;
-/** Priority boost radius inside the window (scrub responsiveness). */
+/** Priority boost around scrub head so nearestLoaded stays close. */
 const PRIORITY_RADIUS = 10;
 
 const DIG_FIRST = "/seq/dig/0001.webp";
@@ -387,7 +385,6 @@ export function ScrollSequence() {
 
     /** Priority frame loader — keep scrub responsive instead of freezing on early idle frames. */
     let enqueueLoad: ((i: number, priority?: boolean) => void) | null = null;
-    let syncWindow: ((center: number) => void) | null = null;
 
     const paintIndex = (idx: number) => {
       if (!paintFn || pathsLen < 1) return;
@@ -396,8 +393,14 @@ export function ScrollSequence() {
         lastPaintIdx = clamped;
         paintFn(clamped);
       }
-      // Windowed preload + eviction around scrub/idle head (no full-sequence resident set).
-      syncWindow?.(clamped);
+      // Always pull frames around the scrub head so nearestLoaded can catch up.
+      // Do not evict here — clearing decoded frames mid-scrub causes hard stutter.
+      if (enqueueLoad) {
+        for (let d = 0; d <= PRIORITY_RADIUS; d++) {
+          enqueueLoad(clamped + d, true);
+          if (d > 0) enqueueLoad(clamped - d, true);
+        }
+      }
     };
 
     const runIdle = (dt: number) => {
@@ -556,57 +559,25 @@ export function ScrollSequence() {
       const queue: number[] = [];
       let activeLoads = 0;
 
-      const releaseFrame = (i: number) => {
-        const f = frames[i];
-        if (f) {
-          if ("close" in f && typeof f.close === "function") {
-            f.close();
-          } else if ("src" in f) {
-            f.src = "";
-          }
-          frames[i] = null;
-        }
-        requested.delete(i);
-        const at = queue.indexOf(i);
-        if (at >= 0) queue.splice(at, 1);
-      };
-
       const pumpLoads = () => {
         while (activeLoads < MAX_CONCURRENT && queue.length > 0) {
           const i = queue.shift();
           if (i === undefined) break;
           if (frames[i] || i < 0 || i >= paths.length) continue;
-          // Drop stale queue entries that fell outside the window while waiting.
-          if (
-            lastPaintIdx >= 0 &&
-            Math.abs(i - lastPaintIdx) > FRAME_WINDOW
-          ) {
-            requested.delete(i);
-            continue;
-          }
           const path = paths[i];
           if (!path) continue;
           activeLoads += 1;
           void loadImage(path).then((img) => {
             activeLoads -= 1;
-            if (cancelled) return;
-            if (
-              lastPaintIdx >= 0 &&
-              Math.abs(i - lastPaintIdx) > FRAME_WINDOW
-            ) {
-              if (img && "src" in img) img.src = "";
-              else if (img && "close" in img) img.close();
-              requested.delete(i);
+            if (!cancelled) {
+              frames[i] = img;
+              // Always refresh scrub head — previously a tight distance check
+              // skipped updates and left the excavator frozen on early idle frames.
+              if (img && lastPaintIdx >= 0) {
+                paint(lastPaintIdx, true);
+              }
               pumpLoads();
-              return;
             }
-            frames[i] = img;
-            // Always refresh scrub head — previously a tight distance check
-            // skipped updates and left the excavator frozen on early idle frames.
-            if (img && lastPaintIdx >= 0) {
-              paint(lastPaintIdx, true);
-            }
-            pumpLoads();
           });
         }
       };
@@ -628,20 +599,6 @@ export function ScrollSequence() {
         if (priority) queue.unshift(i);
         else queue.push(i);
         pumpLoads();
-      };
-
-      syncWindow = (center: number) => {
-        if (!enqueueLoad) return;
-        for (let d = 0; d <= FRAME_WINDOW; d++) {
-          const priority = d <= PRIORITY_RADIUS;
-          enqueueLoad(center + d, priority);
-          if (d > 0) enqueueLoad(center - d, priority);
-        }
-        for (let i = 0; i < pathsLen; i++) {
-          if (Math.abs(i - center) > FRAME_WINDOW) {
-            releaseFrame(i);
-          }
-        }
       };
 
       resize();
@@ -667,13 +624,14 @@ export function ScrollSequence() {
       // Catch up if user already scrolled while the first frame was loading.
       onTick();
 
-      // Only idle-loop frames eagerly — rest loads via scrub window.
+      // Idle loop first, then rest of dig, then underground (background fill).
       for (let i = 1; i < preloadFirst; i++) enqueueLoad(i, true);
+      for (let i = preloadFirst; i < digPaths.length; i++) enqueueLoad(i, false);
+      for (let i = digPaths.length; i < paths.length; i++) enqueueLoad(i, false);
 
       return () => {
         window.removeEventListener("resize", resize);
         queue.length = 0;
-        for (let i = 0; i < frames.length; i++) releaseFrame(i);
       };
     }
 
