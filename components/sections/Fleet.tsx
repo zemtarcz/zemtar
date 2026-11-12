@@ -30,7 +30,7 @@ function StageImage({ item }: { item: EquipmentItem }) {
         fill
         sizes="(min-width: 1024px) 55vw, 100vw"
         className="object-cover"
-        loading="eager"
+        loading="lazy"
       />
       <span
         className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { formatCzk } from "@/content/site";
+import { useLowEndDevice } from "@/components/motion/useLowEndDevice";
 import { useReducedMotion } from "@/components/motion/useReducedMotion";
 
 type Props = {
@@ -16,6 +17,8 @@ export function CountUp({ value, className = "", currency = true }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(value);
   const reduced = useReducedMotion();
+  const lowEnd = useLowEndDevice();
+  const skipMotion = reduced || lowEnd;
 
   useEffect(() => {
     const el = ref.current;
@@ -24,7 +27,7 @@ export function CountUp({ value, className = "", currency = true }: Props) {
     const format = (n: number) =>
       currency ? formatCzk(n) : Math.round(n).toLocaleString("cs-CZ");
 
-    if (reduced) {
+    if (skipMotion) {
       el.textContent = format(value);
       prev.current = value;
       return;
@@ -48,7 +51,7 @@ export function CountUp({ value, className = "", currency = true }: Props) {
     return () => {
       tween.kill();
     };
-  }, [value, currency, reduced]);
+  }, [value, currency, skipMotion]);
 
   const initial = currency
     ? formatCzk(value)

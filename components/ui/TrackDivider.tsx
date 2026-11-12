@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useLowEndDevice } from "@/components/motion/useLowEndDevice";
 import { useReducedMotion } from "@/components/motion/useReducedMotion";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -63,6 +64,8 @@ export function TrackDivider({
   const rootRef = useRef<HTMLDivElement>(null);
   const clipRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const lowEnd = useLowEndDevice();
+  const skipMotion = reduced || lowEnd;
   const uid = useId().replace(/:/g, "");
   const patternId = `track-chevron-${uid}`;
 
@@ -70,7 +73,7 @@ export function TrackDivider({
     const clip = clipRef.current;
     if (!clip) return;
 
-    if (reduced) {
+    if (skipMotion) {
       gsap.set(clip, { clipPath: "inset(0 0% 0 0)" });
       return;
     }
@@ -93,7 +96,7 @@ export function TrackDivider({
     }, rootRef);
 
     return () => ctx.revert();
-  }, [reduced, scrubStart, scrubEnd]);
+  }, [skipMotion, scrubStart, scrubEnd]);
 
   return (
     <div
@@ -105,7 +108,7 @@ export function TrackDivider({
         <div
           ref={clipRef}
           className="absolute inset-0"
-          style={reduced ? undefined : { clipPath: "inset(0 100% 0 0)" }}
+          style={skipMotion ? undefined : { clipPath: "inset(0 100% 0 0)" }}
         >
           <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
             <defs>

@@ -16,7 +16,8 @@ import { formatCzk, site, unwrap } from "@/content/site";
 import { Placeholder } from "@/components/ui/Placeholder";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
-import { Section, SectionHeader } from "@/components/ui/Section";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { SuccessCheck } from "@/components/ui/SuccessCheck";
 import { useQuote } from "@/components/quote/QuoteContext";
 import {

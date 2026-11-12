@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type MouseEvent } from "react";
 import gsap from "gsap";
+import { useLowEndDevice } from "@/components/motion/useLowEndDevice";
 import { useReducedMotion } from "@/components/motion/useReducedMotion";
 
 const MAX_PULL = 6;
@@ -26,6 +27,8 @@ export function MagneticPrimaryCta({
   const fillRef = useRef<HTMLSpanElement>(null);
   const arrowRef = useRef<HTMLSpanElement>(null);
   const reduced = useReducedMotion();
+  const lowEnd = useLowEndDevice();
+  const skipMotion = reduced || lowEnd;
   const fineRef = useRef(false);
 
   useEffect(() => {
@@ -33,7 +36,7 @@ export function MagneticPrimaryCta({
   }, []);
 
   function onMove(e: MouseEvent<HTMLAnchorElement>) {
-    if (reduced || !fineRef.current || !wrapRef.current) return;
+    if (skipMotion || !fineRef.current || !wrapRef.current) return;
     const rect = wrapRef.current.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
@@ -49,7 +52,7 @@ export function MagneticPrimaryCta({
   }
 
   function onEnter() {
-    if (reduced) return;
+    if (skipMotion) return;
     if (fillRef.current) {
       gsap.fromTo(
         fillRef.current,

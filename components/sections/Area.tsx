@@ -1,6 +1,7 @@
 import { site } from "@/content/site";
 import { AreaMap } from "@/components/sections/AreaMap";
-import { Section, SectionHeader } from "@/components/ui/Section";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export function Area() {
   return (

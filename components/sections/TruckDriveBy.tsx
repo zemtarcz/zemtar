@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AssetOrPlaceholder } from "@/components/ui/AssetOrPlaceholder";
+import { useLowEndDevice } from "@/components/motion/useLowEndDevice";
 import { useReducedMotion } from "@/components/motion/useReducedMotion";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -16,9 +17,11 @@ export function TruckDriveBy() {
   const driveRef = useRef<HTMLElement>(null);
   const truckRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const lowEnd = useLowEndDevice();
+  const skipMotion = reduced || lowEnd;
 
   useEffect(() => {
-    if (reduced || !driveRef.current || !truckRef.current) return;
+    if (skipMotion || !driveRef.current || !truckRef.current) return;
 
     const truck = truckRef.current;
     const drive = driveRef.current;
@@ -48,7 +51,7 @@ export function TruckDriveBy() {
 
     requestAnimationFrame(() => ScrollTrigger.refresh());
     return () => ctx.revert();
-  }, [reduced]);
+  }, [skipMotion]);
 
   return (
     <section
@@ -61,7 +64,7 @@ export function TruckDriveBy() {
         <div
           ref={truckRef}
           className={
-            reduced
+            skipMotion
               ? "absolute bottom-1 right-0 z-10 w-full max-w-full md:bottom-1.5 md:w-[min(48vw,26rem)] md:max-w-[26rem]"
               : "absolute bottom-1 left-0 z-10 w-[min(58vw,22rem)] will-change-transform md:bottom-1.5 md:w-[min(48vw,26rem)]"
           }
@@ -72,6 +75,7 @@ export function TruckDriveBy() {
             className="block h-auto w-full max-w-full select-none object-contain object-right"
             width={2000}
             height={1049}
+            sizes="(min-width: 768px) min(48vw, 26rem), 58vw"
             loading="lazy"
           />
         </div>

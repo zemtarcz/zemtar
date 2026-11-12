@@ -10,9 +10,11 @@ import {
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { site } from "@/content/site";
-import { Section, SectionHeader } from "@/components/ui/Section";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Card } from "@/components/ui/Card";
 import { AssetOrPlaceholder } from "@/components/ui/AssetOrPlaceholder";
+import { useLowEndDevice } from "@/components/motion/useLowEndDevice";
 import { useReducedMotion } from "@/components/motion/useReducedMotion";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -36,6 +38,8 @@ export function Services() {
   const listRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const lowEnd = useLowEndDevice();
+  const skipMotion = reduced || lowEnd;
   const finePointer = useFinePointer();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [previewSrc, setPreviewSrc] = useState<{
@@ -47,7 +51,7 @@ export function Services() {
   const yTo = useRef<ReturnType<typeof gsap.quickTo> | null>(null);
 
   useEffect(() => {
-    if (reduced || !listRef.current) return;
+    if (skipMotion || !listRef.current) return;
     const ctx = gsap.context(() => {
       gsap.from(".service-card", {
         y: 28,
@@ -62,11 +66,11 @@ export function Services() {
       });
     }, listRef);
     return () => ctx.revert();
-  }, [reduced]);
+  }, [skipMotion]);
 
   useEffect(() => {
     const el = previewRef.current;
-    if (!el || !finePointer || reduced) return;
+    if (!el || !finePointer || skipMotion) return;
     xTo.current = gsap.quickTo(el, "x", { duration: 0.4, ease: "power3.out" });
     yTo.current = gsap.quickTo(el, "y", { duration: 0.4, ease: "power3.out" });
     gsap.set(el, { x: -9999, y: -9999, opacity: 0, scale: 0.9 });
@@ -74,11 +78,11 @@ export function Services() {
       xTo.current = null;
       yTo.current = null;
     };
-  }, [finePointer, reduced]);
+  }, [finePointer, skipMotion]);
 
   useEffect(() => {
     const el = previewRef.current;
-    if (!el || !finePointer || reduced) return;
+    if (!el || !finePointer || skipMotion) return;
     if (activeId && previewSrc) {
       gsap.to(el, {
         opacity: 1,
@@ -96,31 +100,31 @@ export function Services() {
         overwrite: "auto",
       });
     }
-  }, [activeId, previewSrc, finePointer, reduced]);
+  }, [activeId, previewSrc, finePointer, skipMotion]);
 
   const onCardEnter = useCallback(
     (id: string, src: string, alt: string) => {
-      if (!finePointer || reduced) return;
+      if (!finePointer || skipMotion) return;
       setActiveId(id);
       setPreviewSrc({ src, alt });
     },
-    [finePointer, reduced],
+    [finePointer, skipMotion],
   );
 
   const onCardLeave = useCallback(() => {
-    if (!finePointer || reduced) return;
+    if (!finePointer || skipMotion) return;
     setActiveId(null);
-  }, [finePointer, reduced]);
+  }, [finePointer, skipMotion]);
 
   const onCardMove = useCallback(
     (e: MouseEvent) => {
-      if (!finePointer || reduced) return;
+      if (!finePointer || skipMotion) return;
       const offsetX = 24;
       const offsetY = -PREVIEW_H / 2;
       xTo.current?.(e.clientX + offsetX);
       yTo.current?.(e.clientY + offsetY);
     },
-    [finePointer, reduced],
+    [finePointer, skipMotion],
   );
 
   return (
@@ -169,7 +173,7 @@ export function Services() {
         ))}
       </div>
 
-      {finePointer && !reduced ? (
+      {finePointer && !skipMotion ? (
         <div
           ref={previewRef}
           className="pointer-events-none fixed top-0 left-0 z-[90] hidden overflow-hidden border border-white/10 shadow-2xl md:block"
@@ -183,7 +187,8 @@ export function Services() {
               className="h-full w-full object-cover"
               width={PREVIEW_W}
               height={PREVIEW_H}
-              loading="eager"
+              sizes={`${PREVIEW_W}px`}
+              loading="lazy"
             />
           ) : null}
         </div>

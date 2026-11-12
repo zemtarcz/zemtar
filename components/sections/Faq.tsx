@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { site, unwrap } from "@/content/site";
 import { Placeholder } from "@/components/ui/Placeholder";
-import { Section, SectionHeader } from "@/components/ui/Section";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export function Faq() {
   const baseId = useId();
