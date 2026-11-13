@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  /** Až 4×2 MB fotek + textová pole poptávky. */
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   async headers() {
     return [
       { source: "/seq/:path*", headers: immutableAssetHeaders },

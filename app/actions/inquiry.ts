@@ -2,13 +2,14 @@
 
 import { z } from "zod";
 import { site, siteConfig, unwrap } from "@/content/site";
+import { formatPhoneDisplay, isValidCzechPhone } from "@/lib/phone";
 
-const phonePattern = /^[0-9 +()\-]{9,}$/;
 const INQUIRY_PHOTO_MAX_MB = site.inquiryPhotoMaxMb;
 const INQUIRY_PHOTO_MAX_BYTES = INQUIRY_PHOTO_MAX_MB * 1024 * 1024;
 const INQUIRY_PHOTO_MAX_COUNT = 4;
-/** Rezerva pod limitem těla Vercel Functions (~4,5 MB). */
-const INQUIRY_PHOTOS_TOTAL_MAX_BYTES = 3.5 * 1024 * 1024;
+/** 4×2 MB po kompresi (+ rezerva multipart). */
+const INQUIRY_PHOTOS_TOTAL_MAX_BYTES =
+  INQUIRY_PHOTO_MAX_COUNT * INQUIRY_PHOTO_MAX_BYTES;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -17,6 +18,8 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/heic",
   "image/heif",
 ]);
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const serviceValues = site.inquiryTypes.map((t) => t.value) as [
   (typeof site.inquiryTypes)[number]["value"],
@@ -27,30 +30,56 @@ const serviceLabelByValue = Object.fromEntries(
   site.inquiryTypes.map((t) => [t.value, t.label]),
 ) as Record<string, string>;
 
-function countPhoneDigits(value: string): number {
-  return value.replace(/\D/g, "").length;
+function isValidIsoDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) return false;
+  const [ys, ms, ds] = value.split("-");
+  const y = Number(ys);
+  const m = Number(ms);
+  const d = Number(ds);
+  const date = new Date(y, m - 1, d);
+  return (
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d
+  );
 }
 
 const inquirySchema = z.object({
   services: z
     .array(z.enum(serviceValues))
     .min(1, "Vyberte alespoň jednu službu"),
-  place: z.string().trim().min(2, "Zadejte obec nebo adresu zakázky"),
-  term: z.string().trim().optional(),
-  name: z.string().trim().min(2, "Zadejte jméno"),
+  place: z
+    .string()
+    .trim()
+    .min(2, "Zadejte obec nebo adresu zakázky")
+    .max(200, "Místo je příliš dlouhé"),
+  term: z
+    .string()
+    .trim()
+    .min(1, "Vyberte orientační termín")
+    .refine(isValidIsoDate, { message: "Vyberte platné datum" }),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Zadejte jméno")
+    .max(120, "Jméno je příliš dlouhé"),
   phone: z
     .string()
     .trim()
-    .regex(phonePattern, "Zadejte platné telefonní číslo (min. 9 číslic)")
-    .refine((v) => countPhoneDigits(v) >= 9, {
-      message: "Zadejte platné telefonní číslo (min. 9 číslic)",
+    .refine(isValidCzechPhone, {
+      message: "Zadejte telefon ve tvaru 777 123 456",
     }),
   email: z
     .string()
     .trim()
     .min(1, "Zadejte e-mail")
+    .max(200, "E-mail je příliš dlouhý")
     .email("Zadejte platný e-mail"),
-  note: z.string().trim().optional(),
+  note: z
+    .string()
+    .trim()
+    .max(4000, "Popis je příliš dlouhý")
+    .optional(),
   /** Orientační odhad z ceníku – kontext pro lepší pochopení poptávky. */
   contextCenik: z.string().trim().max(4000).optional(),
   /** Výběr z konfigurátoru Technika. */
@@ -139,7 +168,7 @@ async function parsePhotos(
     if (!isImageFile(file)) {
       return {
         photos: [],
-        error: `Soubor „${file.name}“ není obrázek (JPEG, PNG, WebP, GIF).`,
+        error: `Soubor „${file.name}“ není obrázek (JPEG, PNG, WebP, GIF, HEIC).`,
       };
     }
     if (file.size > INQUIRY_PHOTO_MAX_BYTES) {
@@ -234,6 +263,26 @@ function buildPlainBody(
   }
 
   return sections.join("\n");
+}
+
+function buildMailtoUrl(
+  to: string,
+  subject: string,
+  plainBody: string,
+  photoNames: string[],
+): string {
+  const body = encodeURIComponent(
+    [
+      plainBody,
+      "",
+      photoNames.length
+        ? `(Fotky nelze poslat přes mailto: ${photoNames.join(", ")})`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
+  return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${body}`;
 }
 
 /** Příjemce poptávek – přepsatelné přes `INQUIRY_TO`. */
@@ -367,10 +416,13 @@ export async function submitInquiry(
     };
   }
 
-  const data = parsed.data;
+  const data = {
+    ...parsed.data,
+    phone: formatPhoneDisplay(parsed.data.phone),
+  };
   const photos = photoResult.photos;
   const photoNames = photos.map((p) => p.filename);
-  const title = `Poptávka – ${data.place}`;
+  const title = `Poptávka – ${data.name} (${data.place})`;
   const plainBody = buildPlainBody(data, photoNames);
 
   const to = inquiryToAddress();
@@ -396,7 +448,12 @@ export async function submitInquiry(
       photos,
     });
     if (!sent.ok) {
-      return { ok: false, message: sent.message, values };
+      return {
+        ok: false,
+        message: sent.message,
+        values,
+        mailto: buildMailtoUrl(to, title, plainBody, photoNames),
+      };
     }
     return {
       ok: true,
@@ -404,25 +461,12 @@ export async function submitInquiry(
     };
   }
 
-  const subject = encodeURIComponent(title);
-  const body = encodeURIComponent(
-    [
-      plainBody,
-      "",
-      photos.length
-        ? `(Fotky nelze poslat přes mailto: ${photoNames.join(", ")})`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n"),
-  );
-
   return {
     ok: true,
     message:
       photos.length > 0
-        ? "Děkujeme. Odesílání e-mailu zatím není napojené – fotky jsou přijaté na serveru (dev log); přes mailto je nelze přiložit. Můžete použít tlačítko mailto nebo zavolat."
-        : "Děkujeme. Odesílání e-mailu zatím není napojené – můžete použít tlačítko mailto nebo zavolat.",
-    mailto: `mailto:${to}?subject=${subject}&body=${body}`,
+        ? "Děkujeme. Automatické odesílání e-mailu zatím není nastavené – fotky přes mailto nelze přiložit. Otevřete připravený e-mail nebo nám zavolejte."
+        : "Děkujeme. Automatické odesílání e-mailu zatím není nastavené – otevřete připravený e-mail nebo nám zavolejte.",
+    mailto: buildMailtoUrl(to, title, plainBody, photoNames),
   };
 }

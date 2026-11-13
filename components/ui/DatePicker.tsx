@@ -86,7 +86,10 @@ type Props = {
   id?: string;
   defaultValue?: string;
   className?: string;
+  required?: boolean;
   "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+  onValueChange?: (iso: string) => void;
 };
 
 export function DatePicker({
@@ -94,7 +97,10 @@ export function DatePicker({
   id,
   defaultValue = "",
   className = "",
+  required = false,
   "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+  onValueChange,
 }: Props) {
   const autoId = useId();
   const inputId = id ?? autoId;
@@ -144,7 +150,9 @@ export function DatePicker({
   while (cells.length % 7 !== 0) cells.push(null);
 
   function pick(d: Date) {
-    setValue(toIso(d));
+    const iso = toIso(d);
+    setValue(iso);
+    onValueChange?.(iso);
     setOpen(false);
     triggerRef.current?.focus();
   }
@@ -156,19 +164,27 @@ export function DatePicker({
     }
   }
 
-  const label =
-    formatCs(value) || "Vyberte datum";
+  const label = formatCs(value) || "Vyberte datum";
+  const invalid = Boolean(ariaInvalid);
 
   return (
     <div ref={rootRef} className={`relative mt-2 ${className}`}>
-      <input type="hidden" name={name} value={value} />
+      <input
+        type="hidden"
+        name={name}
+        value={value}
+        required={required}
+        data-inquiry-term=""
+      />
       <button
         ref={triggerRef}
         id={inputId}
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        data-invalid={invalid ? "true" : undefined}
+        data-required={required ? "true" : undefined}
         onClick={() => {
           setOpen((v) => !v);
           if (selected) setView(startOfMonth(selected));
@@ -177,7 +193,10 @@ export function DatePicker({
         className="flex h-12 w-full cursor-pointer items-center justify-between border border-line bg-transparent px-3 text-left text-base leading-normal text-white outline-none transition"
       >
         <span className={value ? "text-white" : "text-white/60"}>{label}</span>
-        <span className="font-mono text-[11px] uppercase tracking-wide text-white/60" aria-hidden>
+        <span
+          className="font-mono text-[11px] uppercase tracking-wide text-white/60"
+          aria-hidden
+        >
           Kalendář
         </span>
       </button>
@@ -243,7 +262,6 @@ export function DatePicker({
               );
             })}
           </div>
-
         </div>
       ) : null}
     </div>

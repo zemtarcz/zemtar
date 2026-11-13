@@ -466,8 +466,8 @@ export const site = {
     preprava: "doprava-stroju",
     sut: "odvoz-suti",
   } as const,
-  /** Max. velikost jedné fotky v poptávce (MB). */
-  inquiryPhotoMaxMb: 5,
+  /** Max. velikost jedné fotky v poptávce po kompresi (MB). */
+  inquiryPhotoMaxMb: 2,
   meta: {
     title: `${siteConfig.name} | ${siteConfig.tagline}`,
     description: `Kompletní zemní práce od A do Z – výkopy, terénní úpravy, přípojky, odvoz suti a kontejnerová doprava. ${siteConfig.serviceArea}`,

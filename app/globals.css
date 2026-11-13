@@ -210,6 +210,22 @@ body {
   transform: scaleX(1);
 }
 
+/* Kontakt — chybně vyplněná pole */
+.field-focus-line
+  :is(input, textarea, select, button)[aria-invalid="true"],
+.field-focus-line :is(input, textarea, select, button)[data-invalid="true"] {
+  border-color: var(--brand-red);
+}
+.field-focus-line:has([aria-invalid="true"])::after,
+.field-focus-line:has([data-invalid="true"])::after {
+  background: var(--brand-red);
+  transform: scaleX(1);
+}
+.inquiry-services-invalid {
+  outline: 1px solid var(--brand-red);
+  outline-offset: 4px;
+}
+
 @keyframes fleet-loadout-in {
   from {
     opacity: 0;
