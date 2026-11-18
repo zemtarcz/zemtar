@@ -134,6 +134,7 @@ export const site = {
   nav: [
     { href: "#sluzby", label: "Služby" },
     { href: "#technika", label: "Technika" },
+    { href: "#realizace", label: "Realizace" },
     { href: "#oblast", label: "Oblast" },
     { href: "#faq", label: "Často kladené otázky" },
     { href: "#cenik", label: "Ceník" },
@@ -371,36 +372,31 @@ export const site = {
     },
   ],
   truckCopy: "Přeprava vlastní plošinou MAN TGL 12.220 – stroje, auta i jiné náklady.",
-  gallery: [
+  realizaceIntro: "Ukázky z dokončených i probíhajících zakázek na Domažlicku.",
+  realizace: [
     {
-      src: "/photos/man-tgl-real.webp",
-      alt: "MAN TGL 12.220 s plošinou MULTITEC",
-      example: false,
+      src: "/photos/realizace/01-plot-priprava.webp",
+      alt: "Příprava pozemku u nového plotu",
     },
     {
-      src: "/photos/placeholder/pc38mr-action.webp",
-      alt: "Komatsu PC38MR při práci (placeholder výrobce)",
-      example: true,
+      src: "/photos/realizace/02-bagr-plot.webp",
+      alt: "Minibagr Komatsu při úpravě terénu u plotu",
     },
     {
-      src: "/photos/placeholder/pc38mr-cutout.webp",
-      alt: "Komatsu PC38MR (placeholder produkt)",
-      example: true,
+      src: "/photos/realizace/03-bagr-zezadu.webp",
+      alt: "Komatsu PC38MR na pozemku za domem",
     },
     {
-      src: "/photos/placeholder/kontejner-plato.webp",
-      alt: "Kontejner plato 4,5 m (placeholder)",
-      example: true,
+      src: "/photos/realizace/04-bagr-celni.webp",
+      alt: "Komatsu PC38MR při zemních pracích",
     },
     {
-      src: "/photos/placeholder/kontejner-sutovy.webp",
-      alt: "Suťový kontejner 4,5 m (placeholder)",
-      example: true,
+      src: "/photos/realizace/05-bagr-man.webp",
+      alt: "Minibagr a nákladní automobil MAN na stavbě",
     },
     {
-      src: "/photos/placeholder/man-tgl-bok.webp",
-      alt: "MAN TGL z boku (placeholder – souhlas provozovatele)",
-      example: true,
+      src: "/photos/realizace/06-hrabe.webp",
+      alt: "Komatsu PC38MR s hráběmi při úpravě terénu",
     },
   ],
   faq: [

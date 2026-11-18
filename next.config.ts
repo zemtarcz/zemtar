@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
       { source: "/hero/:path*", headers: immutableAssetHeaders },
       { source: "/truck/:path*", headers: immutableAssetHeaders },
       { source: "/technika/:path*", headers: immutableAssetHeaders },
+      { source: "/photos/realizace/:path*", headers: immutableAssetHeaders },
     ];
   },
 };

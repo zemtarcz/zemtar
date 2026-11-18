@@ -241,6 +241,26 @@ body {
   animation: fleet-loadout-in 380ms ease-out both;
 }
 
+/* Realizace — nekonečný průjezd fotek zleva doprava */
+@keyframes realizace-marquee {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.realizace-marquee__inner {
+  animation: realizace-marquee 55s linear infinite;
+  will-change: transform;
+}
+
+.realizace-marquee:hover .realizace-marquee__inner,
+.realizace-marquee:focus-within .realizace-marquee__inner {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

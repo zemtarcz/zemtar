@@ -3,6 +3,7 @@ import { Header } from "@/components/sections/Header";
 import { ScrollSequence } from "@/components/motion/ScrollSequence";
 import { Services } from "@/components/sections/Services";
 import { Fleet } from "@/components/sections/Fleet";
+import { Realizace } from "@/components/sections/Realizace";
 import { Pricing } from "@/components/sections/Pricing";
 import { Area } from "@/components/sections/Area";
 import { Faq } from "@/components/sections/Faq";
@@ -40,6 +41,8 @@ export default function HomePage() {
         <TruckDriveBy />
         <QuoteProvider>
           <Fleet />
+          <TrackDivider />
+          <Realizace />
           <TrackDivider />
           <Area />
           <TrackDivider />
